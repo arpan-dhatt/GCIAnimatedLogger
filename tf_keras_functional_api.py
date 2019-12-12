@@ -85,7 +85,7 @@ model.compile(optimizer="adam",loss="categorical_crossentropy",metrics=["accurac
 from animated_logger import AnimatedLogger
 """Training the model"""
 
-model.fit(x=train_data,y=train_labels,batch_size=1024,epochs=2,validation_split=0.05,verbose=0,callbacks=[AnimatedLogger()])
+model.fit(x=train_data[:6400],y=train_labels[:6400],batch_size=64,epochs=10,validation_split=0.05,verbose=0,callbacks=[AnimatedLogger()])
 
 """Now that the model is trained, let's use our evaluation data to see how good it is."""
 
