@@ -14,15 +14,11 @@ class AnimatedLogger(Callback):
         count_mode: One of "steps" or "samples".
             Whether the progress bar should
             count samples seen or steps (batches) seen.
-        stateful_metrics: Iterable of string names of metrics that
-            should *not* be averaged over an epoch.
-            Metrics in this list will be logged as-is.
-            All others will be averaged over time (e.g. loss, etc).
     Raises:
         ValueError: In case of invalid `count_mode`.
     """
 
-    def __init__(self, count_mode='samples', stateful_metrics=None):
+    def __init__(self, count_mode='samples'):
         super(AnimatedLogger, self).__init__()
         if count_mode == 'samples':
             self.use_steps = False
@@ -30,7 +26,6 @@ class AnimatedLogger(Callback):
             self.use_steps = True
         else:
             raise ValueError('Unknown `count_mode`: ' + str(count_mode))
-        self.stateful_metrics = set(stateful_metrics or [])
         self.data_dict = {}
 
     def on_train_begin(self, logs=None):
@@ -46,16 +41,7 @@ class AnimatedLogger(Callback):
 
         self.start_time = time.time()
 
-        if self.verbose:
-            if self.epochs > 1:
-                print('Epoch %d/%d' % (epoch + 1, self.epochs))
-
         print('Epoch %d/%d' % (epoch + 1, self.epochs))
-        # self.progbar = Progbar(
-        #    target=self.target,
-        #    verbose=self.verbose,
-        #    stateful_metrics=self.stateful_metrics,
-        #    unit_name='step' if self.use_steps else 'sample')
 
     def on_batch_begin(self, batch, logs=None):
         self.log_values = []
@@ -63,8 +49,7 @@ class AnimatedLogger(Callback):
     def on_batch_end(self, batch, logs=None):
         logs = logs or {}
         batch_size = logs.get('size', 0)
-        # In case of distribution strategy we can potentially run multiple steps
-        # at the same time, we should account for that in the `seen` calculation.
+
         num_steps = logs.get('num_steps', 1)
         if self.use_steps:
             self.seen += num_steps
@@ -75,9 +60,6 @@ class AnimatedLogger(Callback):
             if k in logs:
                 self.log_values.append((k, logs[k]))
 
-        # Skip progbar update for the last batch;
-        # will be handled by on_epoch_end.
-        # print(batch,self.target,self.seen,self.log_values)
         steps = "{}/{}".format(self.seen, self.target)
         bar = progress_bar(self.seen/self.target)
         eta = "ETA: {:.2f} secs".format(
@@ -87,8 +69,6 @@ class AnimatedLogger(Callback):
             metrics += "{}: {:.5f} | ".format(metric[0], metric[1])
         out = f"\r{steps} {bar} {eta} | {metrics}" + 10 * " "
         sys.stdout.write(out)
-        if self.verbose and (self.target is None or self.seen < self.target):
-            None  # self.progbar.update(self.seen, self.log_values)
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -114,16 +94,12 @@ class AnimatedLogger(Callback):
 
         print("")
         graph_all_mats(self.data_dict, epoch+1, width=20)
-        if self.verbose:
-            None  # self.progbar.update(self.seen, self.log_values)
-
 
 def progress_bar(progress, width=50):
     return "[" + "█" * int(progress*width) + " " * (width-int(progress*width)) + "]"
 
 
 def bar(progress, width=10):
-    # 0 <= progress <= 1
     progress = min(1, max(0, progress))
     whole = math.floor(progress * width)
     remainder_width = (progress * width) % 1
@@ -132,7 +108,6 @@ def bar(progress, width=10):
     if (width - whole - 1) < 0:
         pc = ""
     return "" + "█" * whole + pc + " " * (width - whole - 1)
-
 
 def graph_mat(title, values, width=10):
     maximum = max(values)
