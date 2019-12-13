@@ -96,7 +96,7 @@ class AnimatedLogger(Callback):
         graph_all_mats(self.data_dict, epoch+1, width=20)
 
 def progress_bar(progress, width=50):
-    return "[" + "█" * int(progress*width) + " " * (width-int(progress*width)) + "]"
+    return "[" + "\u2588" * int(progress*width) + " " * (width-int(progress*width)) + "]"
 
 
 def bar(progress, width=10):
@@ -127,7 +127,7 @@ def graph_all_mats(data_dict, iters, width=10):
         row = ""
         for mat in mats:
             if len(mat) > l:
-                row += "|"+mat[l]+" "*2
+                row += "|"+mat[l]+"\t"
             else:
-                row += "|"+width*" " + " "*2
+                row += "|"+width*" " + "\t"
         print(row)
